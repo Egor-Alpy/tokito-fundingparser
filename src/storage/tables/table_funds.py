@@ -1,8 +1,10 @@
 from src.storage.database import DataBase
 
-from src.core.logger import logger
+from src.core.logger import get_logger
 
 from src.core.enums import KeyFunds
+
+logger = get_logger(name=__name__)
 
 
 class TableFunds(DataBase):

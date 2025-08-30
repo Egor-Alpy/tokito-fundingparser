@@ -2,7 +2,9 @@ import time
 import asyncio
 
 from src.pyrogram_sender import PyrogramSender
-from src.core.logger import logger
+from src.core.logger import get_logger
+
+logger = get_logger(name=__name__)
 
 
 

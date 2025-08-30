@@ -9,10 +9,18 @@ class Settings(BaseSettings):
     CHAT_ID: str = "@fundparser"  # Чат, куда будут отправляться сообщения (username with @ or numeric ID)
     CHAT_ID_EN: str = "@fundparser_en"  # English channel for messages (username with @ or numeric ID)
     CHECK_DELAY: int = 60  # Задержка в СЕКУНДАХ между запросами на получение последних фандингов11
-    SIZE_OF_TEMPORAL_FUNDS_STORAGE: int = 100  # Количество key + stage последних фандингов, которые мы запоминаем
+    SIZE_OF_TEMPORAL_FUNDS_STORAGE: int = 100  # Количество key + stage последних фандингов, которые мы запоми
+
+    # Настройка логирования
+    LOG_LEVEL: str = (
+        "INFO"  # Доступные уровни логирования - DEBUG, INFO, WARNING, ERROR, FATAL
+    )
+    LOG_FORMAT: str = (
+        "%(asctime).19s | %(levelname).3s | %(message)s"  # Формат отображения логов
+    )
 
     class Config:
-        env_file = ".env_testik"
+        env_file = ".env"
         case_sensitive = True
 
 

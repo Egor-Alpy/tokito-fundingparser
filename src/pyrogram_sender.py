@@ -3,7 +3,9 @@ from pyrogram import Client
 
 from src.core.config import settings
 from src.cryptorank_scrapper import CryptorankScrapper
-from src.core.logger import logger
+from src.core.logger import get_logger
+
+logger = get_logger(name=__name__)
 
 from src.storage.database_main import table_funds
 
@@ -29,7 +31,9 @@ class PyrogramSender:
         return client
 
     async def start_sending(self):
+        print("Запуск start_sending...")  # ДОБАВИТЬ
         await self.client.start()
+        print("Клиент запущен!")  # ДОБАВИТЬ
         logger.info(f"Подключились к сессии телеграмма | session_name: {self.SESSION_NAME}")
 
         # Заполняем базу данных при старте (один раз)

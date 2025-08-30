@@ -8,7 +8,9 @@ import httpx
 import json
 
 from src.storage.database_main import table_funds
-from src.core.logger import logger
+from src.core.logger import get_logger
+
+logger = get_logger(name=__name__)
 
 
 class CryptorankScrapper:
@@ -159,7 +161,7 @@ class CryptorankScrapper:
         """Делаем запрос в апи для получения основной инфы"""
         try:
             with httpx.Client() as client:
-                response = client.post(url=self.url, headers=self.headers, json=self.get_body(limit, skip))
+                response = client.post(url=self.url, headers=self.headers, json=self.get_body(limit, skip), follow_redirects=True)
                 response.raise_for_status()
 
                 result = response.json()
