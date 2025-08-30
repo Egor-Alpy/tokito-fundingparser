@@ -1,4 +1,8 @@
+import time
+from typing import Optional
 from datetime import datetime
+from unicodedata import category
+
 from bs4 import BeautifulSoup
 import httpx
 import json
@@ -80,19 +84,32 @@ class CryptorankScrapper:
     @staticmethod
     def get_social_links_and_category(fund_key):
         """Получаем ссылки на соц сети проекта со страницы проекта"""
-        html = httpx.get(f'https://cryptorank.io/price/{fund_key}').text
-        soup = BeautifulSoup(html, 'html.parser')
+        retries = 3
         result = {}
+        hashtag = None
 
-        # Находим все ссылки
-        for link in soup.find_all('a', class_='styles_coin_social_link_item__SAH_3'):
-            href = link.get('href')
-            span = link.find('span')
+        for _ in range(retries):
+            html = httpx.get(f'https://cryptorank.io/price/{fund_key}').text
+            soup = BeautifulSoup(html, 'html.parser')
 
-            if href and span and span.text:
-                result[span.text] = href
-        category = soup.find('p', class_='sc-b2e3d974-0 sc-ff306fb2-3 cqdNHy')
-        return result, category
+            # Находим все ссылки
+            for link in soup.find_all('a', class_='styles_coin_social_link_item__SAH_3'):
+                href = link.get('href')
+                span = link.find('span')
+
+                if href and span and span.text:
+                    result[span.text] = href
+            hashtag = soup.find('p', class_='sc-b2e3d974-0 sc-ff306fb2-3 cqdNHy')
+
+            if hashtag is None:
+                hashtag = soup.find('p', class_='sc-d271dd04-0 sc-ff306fb2-3 dBSoDm')
+            if hashtag:
+                return result, hashtag
+            else:
+                logger.error(f"Error while getting hashtag: {hashtag}")
+                time.sleep(30)
+        return result, hashtag
+
 
     @staticmethod
     def get_twitterscore_url(twitter_url):
@@ -172,10 +189,13 @@ class CryptorankScrapper:
                 
                 messages = []
                 for fund in new_funds:
+                    fund['links'], fund['category'] = self.get_social_links_and_category(fund.get('key'))
                     message = self._generate_message_for_fund(fund)
+                    message_en = self._generate_message_for_fund_en(fund)
                     if message:
                         messages.append({
                             'message': message,
+                            'message_en': message_en,
                             'key': fund.get('key'),
                             'stage': fund.get('stage')
                         })
@@ -211,16 +231,12 @@ class CryptorankScrapper:
             twitter_score = data.get('twitterScore', '')
             funds_list = data.get('funds', [])
             date = data.get('date', '')
-            
+            links = data.get('links')
+            category = data.get('category')
+
             # Проверяем обязательные поля
             if not name or not key:
                 return None
-            
-            # Получаем дополнительные данные
-            links = {}
-            category = None
-            if key:
-                links, category = self.get_social_links_and_category(key)
             
             # Формируем сообщение
             message = f"**[{name}]({f'https://cryptorank.io/ru/ico/{key}'}):** \n\n"
@@ -276,10 +292,103 @@ class CryptorankScrapper:
                 if hashtag:
                     message += f"#{hashtag}\n"
             
-            message += f"\n**[Crypto Free](https://t.me/+s1tbwyMnGrdkZTZi)** | **[Гемопарсер](https://t.me/+86qlqOCRO3xmY2Zi)** | **[Худший чат](https://t.me/+VTQXJ4vOVjJlN2Q6)** | **[Прокси](https://proxys.io/?refid=80884)**"
+            message += f"\n**[Twitter](https://x.com/tokito182)** | **[Proxy](https://proxys.io/?refid=80884)** | **[ETH Gas Monitoring Bot](https://t.me/tokito_gasbot)**"
             
             return message
 
         except Exception as e:
             logger.error(f"Ошибка в части генерации сообщения для одного фандинга: {e}")
+            return None
+
+    def _generate_message_for_fund_en(self, data: dict) -> Optional[str]:
+        """
+        Генерирует сообщение на английском языке для одного фандинга.
+        """
+        try:
+            # Проверяем, что data существует
+            if not data:
+                return None
+            
+            # Проверяем что тип данных нам подходит
+            if type(data) is not str and type(data) is not list:
+                param_names = data.keys()
+            else:
+                return None
+
+            # Извлекаем все данные из словаря
+            key = data.get('key')
+            name = data.get('name')
+            investments = data.get('raise')
+            total_investments = data.get('totalRaise')
+            stage = data.get('stage')
+            twitter_score = data.get('twitterScore', '')
+            funds_list = data.get('funds', [])
+            date = data.get('date', '')
+            links = data.get('links')
+            category = data.get('category')
+            
+            # Проверяем обязательные поля
+            if not name or not key:
+                return None
+            
+            # Формируем сообщение
+            message = f"**[{name}]({f'https://cryptorank.io/ico/{key}'}):** \n\n"
+            
+            # Investment
+            if investments:
+                message += f"**Investment:** ${float(investments) / 1000000} million\n"
+            
+            # Total raised
+            if total_investments:
+                message += f"**Total raised:** ${float(total_investments) / 1000000} million\n"
+            
+            # Stage
+            if stage:
+                message += f"**Stage:** {stage}\n"
+            
+            # Links
+            if links:
+                public_links = ', '.join([f'[{source_name}]({source_url})' for source_name, source_url in links.items()])
+                if public_links:
+                    message += f"**Links:** {public_links}\n"
+            
+            # Twitter score
+            if twitter_score and links.get('X'):
+                twitter_score_with_link = f"[{twitter_score}]({self.get_twitterscore_url(links.get('X', ''))})"
+                message += f"**Twitter score:** {twitter_score_with_link}\n"
+            
+            # Investors
+            if funds_list:
+                investors_list = []
+                for fund in funds_list:
+                    fund_name = fund.get('name', '')
+                    fund_key = fund.get('key', '')
+                    if fund_name and fund_key:
+                        fund_link = f"https://cryptorank.io/funds/{fund_key}"
+                        investors_list.append(f"[{fund_name}]({fund_link})")
+                
+                if investors_list:
+                    investors_str = ", ".join(investors_list)
+                    message += f"**Investors:** {investors_str}\n"
+            
+            # Date
+            if date:
+                try:
+                    formatted_date = datetime.fromisoformat(date.replace('Z', '+00:00')).strftime('%d.%m.%Y')
+                    message += f"\n**Date:** {formatted_date}\n"
+                except:
+                    pass
+            
+            # Category hashtag
+            if category:
+                hashtag = '_'.join(str(category).split())
+                if hashtag:
+                    message += f"#{hashtag}\n"
+            
+            message += f"\n**[Twitter](https://x.com/tokito182)** | **[Proxy](https://proxys.io/?refid=80884)** | **[ETH Gas Monitoring Bot](https://t.me/tokito_gasbot)**"
+            
+            return message
+
+        except Exception as e:
+            logger.error(f"Ошибка в части генерации английского сообщения для одного фандинга: {e}")
             return None

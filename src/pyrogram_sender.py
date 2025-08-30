@@ -17,6 +17,7 @@ class PyrogramSender:
     API_HASH = settings.API_HASH
     SESSION_NAME = settings.SESSION_NAME
     CHAT_ID = settings.CHAT_ID
+    CHAT_ID_EN = settings.CHAT_ID_EN
 
 
     def get_client(self):
@@ -48,13 +49,23 @@ class PyrogramSender:
                     for fund_data in new_funds_messages:
                         try:
                             message = fund_data['message']
+                            message_en = fund_data.get('message_en')
                             fund_key = fund_data['key']
                             fund_stage = fund_data['stage']
+                            
+                            # Отправляем русское сообщение
                             if message:
                                 await self.client.send_message(self.CHAT_ID, message, disable_web_page_preview=True)
                                 logger.info(f"Сообщение успешно отослано | chat_id: {self.CHAT_ID} | fund: {fund_key}_{fund_stage}")
                             else:
                                 logger.warning(f"Сообщение имеет тип NoneType: {message}")
+                            
+                            # Отправляем английское сообщение
+                            if message_en:
+                                await self.client.send_message(self.CHAT_ID_EN, message_en, disable_web_page_preview=True)
+                                logger.info(f"English message sent | chat_id: {self.CHAT_ID_EN} | fund: {fund_key}_{fund_stage}")
+                            else:
+                                logger.warning(f"English message is NoneType: {message_en}")
                             
                             # Проверяем количество фандингов в базе и удаляем самый старый при превышении лимита
                             fund_count = table_funds.get_fund_count()
