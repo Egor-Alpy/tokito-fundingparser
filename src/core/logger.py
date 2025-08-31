@@ -19,7 +19,7 @@ LOG_FILEPATH = os.path.join(LOG_DIRECTORY, LOG_FILENAME)
 
 # config: setting
 logging.basicConfig(
-    level=logging.WARNING,  # Изменено с INFO на WARNING для файлового логирования
+    level=logging.INFO,  # Изменено с INFO на WARNING для файлового логирования
     format=LOG_FORMAT,
     datefmt=LOG_DATE_TIME,
     filename=LOG_FILEPATH,

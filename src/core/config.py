@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     SIZE_OF_TEMPORAL_FUNDS_STORAGE: int = 100  # Количество key + stage последних фандингов, которые мы запоминаем
 
     class Config:
-        env_file = ".env_testik"
+        env_file = ".env"
         case_sensitive = True
 
 
