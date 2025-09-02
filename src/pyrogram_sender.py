@@ -26,6 +26,8 @@ class PyrogramSender:
             api_id=self.API_ID,
             api_hash=self.API_HASH
         )
+
+        logger.info(f'{self.API_ID, self.API_HASH, self.SESSION_NAME, self.CHAT_ID, self.CHAT_ID_EN}')
         return client
 
     async def start_sending(self):
